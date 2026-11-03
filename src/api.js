@@ -30,8 +30,14 @@ export async function apiRequest(path, options = {}) {
     }
   }
 
+  if (response.status === 401 && credentials) {
+    clearCredentials();
+    window.location.href = '/admin';
+    throw new Error('Sua sessão expirou. Entre novamente.');
+  }
+
   if (!response.ok) {
-    const message = typeof body === 'string' ? body : body?.message;
+    const message = typeof body === 'string' ? body : body?.errors?.length ? body.errors.join(' · ') : body?.message;
     throw new Error(message || `A API respondeu com o status ${response.status}.`);
   }
   return body;
