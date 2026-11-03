@@ -76,6 +76,36 @@ tr:last-child td { border-bottom: 0; }
 .error-state strong, .login-switch { display: block; border: 0; background: none; color: var(--teal); font-size: 12px; margin: 18px auto 0; padding: 0; }
 .login-switch:hover { text-decoration: underline; }
 .form-error { color: #b54747; }
+.public-page { min-height: 100vh; background: #f7faf9; }
+.public-header { height: 78px; display: flex; align-items: center; justify-content: space-between; padding: 0 max(24px, calc((100% - 1120px) / 2)); background: #fff; border-bottom: 1px solid var(--line); }
+.public-brand { display: flex; align-items: center; gap: 10px; }
+.public-brand strong, .public-brand span { display: block; }
+.public-brand strong { color: var(--dark); font-family: 'Playfair Display', serif; font-size: 19px; }
+.public-brand span { color: var(--muted); font-size: 11px; margin-top: 2px; }
+.public-hero { max-width: 1120px; margin: 0 auto; padding: 68px 24px 44px; }
+.public-hero h1 { max-width: 620px; font-size: 43px; margin-bottom: 12px; }
+.public-hero p:not(.eyebrow) { color: var(--muted); font-size: 15px; }
+.public-content { max-width: 1120px; margin: 0 auto; padding: 0 24px 60px; }
+.public-section-heading { display: flex; align-items: end; justify-content: space-between; margin-bottom: 18px; }
+.public-section-heading h2 { font-family: 'Playfair Display', serif; font-size: 27px; }
+.public-count { color: var(--muted); font-size: 12px; }
+.menu-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+.menu-pill { color: var(--teal); background: #e4f2ee; border-radius: 20px; font-size: 12px; padding: 8px 13px; }
+.public-product-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+.public-product { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 21px; }
+.public-product h3 { color: var(--dark); font-family: 'Playfair Display', serif; font-size: 20px; margin: 9px 0 7px; }
+.public-product p { min-height: 38px; color: var(--muted); font-size: 12px; line-height: 1.55; }
+.public-product strong { color: var(--teal); font-size: 16px; }
+.product-category { color: #8a9b96; font-size: 10px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; }
+.availability-panel { display: flex; justify-content: space-between; gap: 25px; align-items: center; background: #e4f2ee; border-radius: 14px; padding: 25px 28px; margin-top: 34px; }
+.availability-panel h2 { font-family: 'Playfair Display', serif; font-size: 22px; }
+.availability-panel p:not(.eyebrow) { color: #52716a; font-size: 12px; margin: 0; }
+.table-status-list { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; max-width: 430px; }
+.table-status-list span { border-radius: 20px; padding: 8px 11px; font-size: 11px; }
+.table-status-list .free { color: #216154; background: #c9eadc; }
+.table-status-list .busy { color: #8f4b4b; background: #f4d8d5; }
+.no-tables { color: #52716a; font-size: 12px; }
+@media (max-width: 700px) { .public-header { padding: 0 18px; } .public-header .button { padding: 9px 10px; font-size: 11px; } .public-hero { padding: 45px 18px 32px; } .public-hero h1 { font-size: 34px; } .public-content { padding: 0 18px 40px; } .public-product-grid { grid-template-columns: 1fr; } .availability-panel { align-items: flex-start; flex-direction: column; } .table-status-list { justify-content: flex-start; } }
 .spinner { width: 22px; height: 22px; border: 3px solid #d5e8e3; border-top-color: var(--teal); border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .form-card { margin-bottom: 22px; padding: 22px; }

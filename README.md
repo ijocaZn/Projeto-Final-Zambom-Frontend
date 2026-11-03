@@ -186,3 +186,27 @@ rodando em `http://localhost:8080`. Para usar outra URL, crie um arquivo
 ```env
 VITE_API_URL=http://localhost:8080
 ```
+
+### Rotas do front-end
+
+- `/` apresenta o cardápio público, produtos disponíveis e situação das mesas.
+- `/cardapios`, `/produtos` e `/mesas` também são páginas públicas de consulta.
+- `/admin` abre o login da área administrativa.
+- `/admin/dashboard` e as demais rotas `/admin/{recurso}` exigem autenticação JWT.
+
+### Deploy no Vercel
+
+1. Suba este projeto para o GitHub e, no Vercel, selecione **Add New Project**.
+2. Importe o repositório do front-end.
+3. Use `npm run build` como comando de build e deixe o diretório de saída como
+   `dist`.
+4. Em **Environment Variables**, adicione:
+
+```env
+VITE_API_URL=https://projeto-final-zambom.onrender.com
+```
+
+5. Faça o deploy e acesse a URL gerada pelo Vercel.
+
+O arquivo `vercel.json` já configura o fallback das rotas do React para
+`index.html`, evitando erro 404 ao atualizar páginas internas.

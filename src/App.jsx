@@ -3,7 +3,7 @@ import { NavLink, Navigate, Route, Routes, useLocation, useNavigate, useParams }
 import { apiRequest, clearCredentials, getCredentials, saveToken } from './api';
 
 const resources = [
-  { key: 'clientes', label: 'Clientes', icon: '👥', singular: 'cliente', fields: ['nome', 'email', 'telefone'] },
+  { key: 'clientes', label: 'Clientes', icon: '👥', singular: 'cliente', fields: ['nome', 'email', 'telefone', 'cpf'] },
   { key: 'produtos', label: 'Produtos', icon: '🍽️', singular: 'produto', fields: ['nome', 'descricao', 'preco', 'categoria', 'disponivel'] },
   { key: 'cardapios', label: 'Cardápios', icon: '📋', singular: 'cardápio', fields: ['nome'] },
   { key: 'mesas', label: 'Mesas', icon: '🪑', singular: 'mesa', fields: ['numero', 'capacidade'] },
@@ -37,16 +37,24 @@ function App() {
     setCredentials(null);
   }
 
-  if (!credentials) return <Login onLogin={handleLogin} />;
-
   return (
-    <AppShell onLogout={handleLogout} notice={notice} setNotice={setNotice}>
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/:resource" element={<ResourcePage setNotice={setNotice} />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </AppShell>
+    <Routes>
+      <Route path="/" element={<PublicMenu />} />
+      <Route path="/cardapios" element={<PublicMenu />} />
+      <Route path="/produtos" element={<PublicMenu />} />
+      <Route path="/mesas" element={<PublicMenu />} />
+      <Route path="/admin" element={credentials ? <Navigate to="/admin/dashboard" replace /> : <Login onLogin={handleLogin} />} />
+      <Route path="/admin/*" element={credentials ? (
+        <AppShell onLogout={handleLogout} notice={notice} setNotice={setNotice}>
+          <Routes>
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path=":resource" element={<ResourcePage setNotice={setNotice} />} />
+            <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+          </Routes>
+        </AppShell>
+      ) : <Navigate to="/admin" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 
@@ -78,7 +86,7 @@ function Login({ onLogin }) {
         body: JSON.stringify({ email: form.username, senha: form.password }),
       });
       onLogin(response.token);
-      navigate('/');
+      navigate('/admin/dashboard');
     } catch (requestError) {
       setError(requestError.message);
     }
@@ -87,7 +95,7 @@ function Login({ onLogin }) {
   return (
     <main className="login-page">
       <section className="login-card">
-        <div className="brand-mark">Z</div>
+        <div className="brand-mark">R</div>
         <p className="eyebrow">GESTÃO INTELIGENTE</p>
         <h1>{mode === 'login' ? 'Bem-vindo ao seu restaurante' : 'Crie seu acesso'}</h1>
         <p className="muted">{mode === 'login' ? 'Entre com suas credenciais para gerenciar o restaurante.' : 'Cadastre um e-mail e senha para acessar o painel.'}</p>
@@ -102,6 +110,53 @@ function Login({ onLogin }) {
         </button>
         <p className="login-help">A autenticação é feita pela API via token JWT.</p>
       </section>
+    </main>
+  );
+}
+
+function PublicMenu() {
+  const [menus, setMenus] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [tables, setTables] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    Promise.all([
+      apiRequest('/cardapios'),
+      apiRequest('/produtos'),
+      apiRequest('/mesas'),
+    ]).then(([menuData, productData, tableData]) => {
+      setMenus(Array.isArray(menuData) ? menuData : []);
+      setProducts(Array.isArray(productData) ? productData : []);
+      setTables(Array.isArray(tableData) ? tableData : []);
+    }).catch((requestError) => setError(requestError.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const visibleProducts = products.filter((product) => product.disponivel !== false);
+  const availableTables = tables.filter((table) => table.status === 'LIVRE');
+  return (
+    <main className="public-page">
+      <header className="public-header">
+        <div className="public-brand"><div className="brand-mark small">R</div><div><strong>Restaurante</strong><span>Cardápio digital</span></div></div>
+        <NavLink className="button outline" to="/admin">Área administrativa</NavLink>
+      </header>
+      <section className="public-hero">
+        <p className="eyebrow">SEJA BEM-VINDO</p>
+        <h1>Bem-vindo ao seu restaurante</h1>
+        <p>Confira nosso cardápio e escolha seus pratos favoritos.</p>
+      </section>
+      {loading ? <div className="empty-state"><span className="spinner" />Carregando cardápio...</div> : error ? <div className="empty-state error-state"><strong>Não foi possível carregar o cardápio</strong><span>{error}</span></div> : (
+        <div className="public-content">
+          <section><div className="public-section-heading"><div><p className="eyebrow">NOSSAS OPÇÕES</p><h2>Cardápio</h2></div><span className="public-count">{visibleProducts.length} itens disponíveis</span></div>
+            {menus.length > 0 && <div className="menu-list">{menus.map((menu) => <div className="menu-pill" key={menu.id}>{menu.nome}</div>)}</div>}
+            <div className="public-product-grid">{visibleProducts.map((product) => <article className="public-product" key={product.id}><div className="product-category">{formatLabel(product.categoria || 'PRATO')}</div><h3>{product.nome}</h3><p>{product.descricao || 'Uma opção especial preparada para você.'}</p><strong>{formatCurrency(product.preco)}</strong></article>)}</div>
+            {visibleProducts.length === 0 && <div className="empty-state"><strong>Nenhum item disponível no momento.</strong></div>}
+          </section>
+          <section className="availability-panel"><div><p className="eyebrow">CONFORTO PARA VOCÊ</p><h2>Mesas disponíveis</h2><p>Consulte as mesas livres no momento.</p></div><div className="table-status-list">{availableTables.map((table) => <span className="free" key={table.id}>Mesa {table.numero} · Livre</span>)}{availableTables.length === 0 && <span className="no-tables">Nenhuma mesa livre no momento.</span>}</div></section>
+        </div>
+      )}
     </main>
   );
 }
@@ -123,11 +178,11 @@ function AppShell({ children, onLogout, notice, setNotice }) {
       <aside className={`sidebar ${menuOpen ? 'open' : ''}`}>
         <div className="sidebar-brand"><div className="brand-mark small">R</div><div><strong>Restaurante</strong><span>Gestão</span></div></div>
         <nav>
-          <NavLink to="/" end className="nav-item"><span>⌂</span> Visão geral</NavLink>
+          <NavLink to="/admin/dashboard" end className="nav-item"><span>⌂</span> Visão geral</NavLink>
           <p className="nav-heading">Operação</p>
-          {resources.slice(0, 5).map((resource) => <NavLink key={resource.key} to={`/${resource.key}`} className="nav-item"><span>{resource.icon}</span>{resource.label}</NavLink>)}
+          {resources.slice(0, 5).map((resource) => <NavLink key={resource.key} to={`/admin/${resource.key}`} className="nav-item"><span>{resource.icon}</span>{resource.label}</NavLink>)}
           <p className="nav-heading">Gestão</p>
-          {resources.slice(5).map((resource) => <NavLink key={resource.key} to={`/${resource.key}`} className="nav-item"><span>{resource.icon}</span>{resource.label}</NavLink>)}
+          {resources.slice(5).map((resource) => <NavLink key={resource.key} to={`/admin/${resource.key}`} className="nav-item"><span>{resource.icon}</span>{resource.label}</NavLink>)}
         </nav>
         <button className="logout" onClick={onLogout}>↪ <span>Sair da conta</span></button>
       </aside>
@@ -162,14 +217,14 @@ function Dashboard() {
     </div>
     <section className="welcome-panel"><div><p className="eyebrow">CENTRAL DE OPERAÇÕES</p><h2>Seu restaurante, mais organizado.</h2><p>Use o menu lateral para cadastrar e acompanhar clientes, produtos, pedidos, mesas e muito mais.</p></div><div className="welcome-emoji">🍲</div></section>
     <h2 className="section-title">Acessos rápidos</h2>
-    <div className="quick-grid">{resources.slice(0, 6).map((resource) => <NavLink className="quick-card" to={`/${resource.key}`} key={resource.key}><span>{resource.icon}</span><div><strong>{resource.label}</strong><small>Gerenciar {resource.singular}s</small></div><b>→</b></NavLink>)}</div>
+    <div className="quick-grid">{resources.slice(0, 6).map((resource) => <NavLink className="quick-card" to={`/admin/${resource.key}`} key={resource.key}><span>{resource.icon}</span><div><strong>{resource.label}</strong><small>Gerenciar {resource.singular}s</small></div><b>→</b></NavLink>)}</div>
   </div>;
 }
 
 function ResourcePage({ setNotice }) {
   const { resource: resourceKey } = useParams();
   const resource = resourceMap[resourceKey];
-  if (!resource) return <Navigate to="/" replace />;
+  if (!resource) return <Navigate to="/admin/dashboard" replace />;
   return <CrudPage resource={resource} setNotice={setNotice} />;
 }
 
@@ -237,13 +292,13 @@ function CrudPage({ resource, setNotice }) {
     {editing && <ResourceForm resource={resource} initial={editing} onCancel={() => setEditing(null)} onSave={saveItem} />}
     <section className="table-card">
       <div className="table-toolbar"><div><h2>Registros</h2><span className="counter">{filteredItems.length} registro(s)</span></div><label className="search">⌕<input placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} /></label></div>
-      {loading ? <div className="empty-state"><span className="spinner" />Carregando dados...</div> : error ? <div className="empty-state error-state"><strong>Não foi possível carregar os dados</strong><span>{error}</span><button className="button outline" onClick={loadItems}>Tentar novamente</button></div> : filteredItems.length === 0 ? <div className="empty-state"><span className="empty-icon">◌</span><strong>Nenhum registro encontrado</strong><span>Cadastre o primeiro {resource.singular} para começar.</span></div> : <div className="table-wrapper"><table><thead><tr>{resource.fields.slice(0, 4).map((field) => <th key={field}>{formatLabel(field)}</th>)}<th className="actions-cell">Ações</th></tr></thead><tbody>{filteredItems.map((item, index) => <tr key={item.id ?? item.codigo ?? index}>{resource.fields.slice(0, 4).map((field) => <td key={field}>{formatValue(item[field])}</td>)}<td className="actions-cell"><button className="icon-button" title="Editar" onClick={() => setEditing(item)}>✎</button><button className="icon-button danger-text" title="Remover" onClick={() => removeItem(item)}>⌫</button></td></tr>)}</tbody></table></div>}
+      {loading ? <div className="empty-state"><span className="spinner" />Carregando dados...</div> : error ? <div className="empty-state error-state"><strong>Não foi possível carregar os dados</strong><span>{error}</span><button className="button outline" onClick={loadItems}>Tentar novamente</button></div> : filteredItems.length === 0 ? <div className="empty-state"><span className="empty-icon">◌</span><strong>Nenhum registro encontrado</strong><span>Cadastre o primeiro {resource.singular} para começar.</span></div> : <div className="table-wrapper"><table><thead><tr>{resource.fields.slice(0, 4).map((field) => <th key={field}>{formatLabel(field)}</th>)}<th className="actions-cell">Ações</th></tr></thead><tbody>{filteredItems.map((item, index) => <tr key={item.id ?? item.codigo ?? index}>{resource.fields.slice(0, 4).map((field) => <td key={field}>{formatValue(getDisplayValue(item, field))}</td>)}<td className="actions-cell"><button className="icon-button" title="Editar" onClick={() => setEditing(item)}>✎</button><button className="icon-button danger-text" title="Remover" onClick={() => removeItem(item)}>⌫</button></td></tr>)}</tbody></table></div>}
     </section>
   </div>;
 }
 
 function ResourceForm({ resource, initial, onCancel, onSave }) {
-  const [form, setForm] = useState(() => Object.fromEntries(resource.fields.map((field) => [field, initial[field] ?? ''])));
+  const [form, setForm] = useState(() => Object.fromEntries(resource.fields.map((field) => [field, getFormValue(initial, field)])));
   return <section className="form-card"><div className="form-card-heading"><div><h2>{initial.id ? 'Editar registro' : `Novo ${resource.singular}`}</h2><p className="muted">Preencha os campos abaixo para salvar na API.</p></div><button className="close-button" onClick={onCancel}>×</button></div><form onSubmit={(event) => { event.preventDefault(); onSave(form); }}><div className="form-grid">{resource.fields.map((field) => <label key={field}>{formatLabel(field)}{fieldOptions[field] ? <select value={form[field]} onChange={(e) => setForm({ ...form, [field]: e.target.value })} required={field === resource.fields[0]}><option value="">Selecione</option>{fieldOptions[field].map((option) => <option key={option} value={option}>{formatLabel(option)}</option>)}</select> : <input type={field === 'dataHora' ? 'datetime-local' : field === 'preco' ? 'number' : 'text'} step={field === 'preco' ? '0.01' : undefined} value={form[field]} onChange={(e) => setForm({ ...form, [field]: e.target.value })} placeholder={`Digite ${formatLabel(field).toLowerCase()}`} required={field === resource.fields[0]} />}</label>)}</div><div className="form-actions"><button type="button" className="button outline" onClick={onCancel}>Cancelar</button><button className="button primary" type="submit">Salvar registro</button></div></form></section>;
 }
 
@@ -255,6 +310,25 @@ function formatValue(value) {
   if (value == null || value === '') return '—';
   if (typeof value === 'object') return value.nome ?? value.name ?? JSON.stringify(value);
   return String(value);
+}
+
+function formatCurrency(value) {
+  if (value == null || value === '') return 'Preço não informado';
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value));
+}
+
+function getDisplayValue(item, field) {
+  if (item[field] !== undefined) return item[field];
+  if (field === 'idMesa') return item.mesa?.id;
+  if (field === 'idCliente') return item.cliente?.id;
+  return undefined;
+}
+
+function getFormValue(item, field) {
+  if (item[field] !== undefined && item[field] !== null) return item[field];
+  if (field === 'idMesa') return item.mesa?.id ?? '';
+  if (field === 'idCliente') return item.cliente?.id ?? '';
+  return '';
 }
 
 export default App;
